@@ -43,7 +43,7 @@ class Rule_DictElement : public VariableDictElement { \
         Rule *r = rule;
 
         while (r && r->m_ruleId == 0) {
-            r = r->m_chainedRuleParent;
+            r = r->m_chainedRuleParent.get();
         }
 
         if (!r || r->m_ruleId == 0) {
@@ -69,7 +69,7 @@ class Rule_DictElement : public VariableDictElement { \
         Rule *r = rule;
 
         while (r && r->m_rev.empty()) {
-            r = r->m_chainedRuleParent;
+            r = r->m_chainedRuleParent.get();
         }
 
         if (!r) {
@@ -96,7 +96,7 @@ class Rule_DictElement : public VariableDictElement { \
         Rule *r = rule;
 
         while (r && !r->m_severity) {
-            r = r->m_chainedRuleParent;
+            r = r->m_chainedRuleParent.get();
         }
 
         if (r && r->m_severity) {
@@ -121,7 +121,7 @@ class Rule_DictElement : public VariableDictElement { \
         Rule *r = rule;
 
         while (r && !r->m_logData) {
-            r = r->m_chainedRuleParent;
+            r = r->m_chainedRuleParent.get();
         }
 
         if (r && r->m_logData) {
@@ -145,7 +145,7 @@ class Rule_DictElement : public VariableDictElement { \
         Rule *r = rule;
 
         while (r && !r->m_msg) {
-            r = r->m_chainedRuleParent;
+            r = r->m_chainedRuleParent.get();
         }
 
         if (r && r->m_msg) {

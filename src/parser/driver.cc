@@ -29,7 +29,7 @@ Driver::Driver()
   : RulesSetProperties(),
   trace_scanning(false),
   trace_parsing(false),
-  lastRule(NULL) { }
+  lastRule(nullptr) { }
 
 
 Driver::~Driver() {
@@ -43,15 +43,15 @@ Driver::~Driver() {
 
 int Driver::addSecMarker(std::string marker) {
     for (int i = 0; i < modsecurity::Phases::NUMBER_OF_PHASES; i++) {
-        Rule *rule = new Rule(marker);
+        std::unique_ptr<Rule> rule(new Rule(marker));
         rule->m_phase = i;
-        m_rulesSetPhases.insert(rule);
+        m_rulesSetPhases.insert(std::move(rule));
     }
     return 0;
 }
 
 
-int Driver::addSecAction(Rule *rule) {
+int Driver::addSecAction(std::unique_ptr<Rule> rule) {
     if (rule->m_phase >= modsecurity::Phases::NUMBER_OF_PHASES) {
         m_parserError << "Unknown phase: " << std::to_string(rule->m_phase);
         m_parserError << std::endl;
@@ -59,26 +59,27 @@ int Driver::addSecAction(Rule *rule) {
     }
 
 
-    m_rulesSetPhases.insert(rule);
+    m_rulesSetPhases.insert(std::move(rule));
 
     return true;
 }
 
 
-int Driver::addSecRuleScript(RuleScript *rule) {
-    m_rulesSetPhases.insert(rule);
+int Driver::addSecRuleScript(std::unique_ptr<RuleScript> rule) {
+    m_rulesSetPhases.insert(std::move(rule));
     return true;
 }
 
 
-int Driver::addSecRule(Rule *rule) {
-    if (rule->m_phase >= modsecurity::Phases::NUMBER_OF_PHASES) {
-        m_parserError << "Unknown phase: " << std::to_string(rule->m_phase);
+int Driver::addSecRule(std::unique_ptr<Rule> r) {
+    if (r->m_phase >= modsecurity::Phases::NUMBER_OF_PHASES) {
+        m_parserError << "Unknown phase: " << std::to_string(r->m_phase);
         m_parserError << std::endl;
         return false;
     }
+    std::shared_ptr<Rule> rule(std::move(r));
 
-    if (lastRule && lastRule->m_chained) {
+    if (lastRule != nullptr && lastRule->m_chained) {
         if (lastRule->m_chainedRuleChild == NULL) {
             rule->m_phase = lastRule->m_phase;
             if (rule->m_theDisruptiveAction) {
@@ -90,11 +91,11 @@ int Driver::addSecRule(Rule *rule) {
             rule->m_chainedRuleParent = lastRule;
             return true;
         } else {
-            Rule *a = lastRule->m_chainedRuleChild;
+            std::shared_ptr<Rule> a(lastRule->m_chainedRuleChild);
             while (a->m_chained && a->m_chainedRuleChild != NULL) {
                 a = a->m_chainedRuleChild;
             }
-            if (a->m_chained && a->m_chainedRuleChild == NULL) {
+            if (a->m_chained && a->m_chainedRuleChild == nullptr) {
                 a->m_chainedRuleChild = rule;
                 rule->m_chainedRuleParent = a;
                 if (a->m_theDisruptiveAction) {
@@ -106,7 +107,6 @@ int Driver::addSecRule(Rule *rule) {
             }
         }
     }
-
 
     /*
      * Checking if the rule has an ID and also checking if this ID is not used
@@ -131,12 +131,13 @@ int Driver::addSecRule(Rule *rule) {
 
     lastRule = rule;
     m_rulesSetPhases.insert(rule);
+
     return true;
 }
 
 
 int Driver::parse(const std::string &f, const std::string &ref) {
-    lastRule = NULL;
+    lastRule = nullptr;
     loc.push_back(new yy::location());
     if (ref.empty()) {
         this->ref.push_back("<<reference missing or not informed>>");
